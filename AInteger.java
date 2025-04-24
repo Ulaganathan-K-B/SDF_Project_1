@@ -112,7 +112,7 @@ public class AInteger {
         
         //If sign of this != other, assign to sub.
         if (this.isNeg != other.isNeg) {
-            //Create new AInteger with same as other and opposite sign
+            //Create new AInteger same as other but opposite sign
             AInteger newOther = new AInteger(other);
             newOther.isNeg = !newOther.isNeg;
             return this.sub(newOther);
@@ -140,5 +140,84 @@ public class AInteger {
         }
         
         return result;
-    }   
+    }
+    
+    
+    /*
+    Subtrcation is done as (big number)-(small number).
+    To find big number, we are going to use whichIsBig.
+    How it works:
+    If size of this != size of other
+        return the difference 
+            if <0, other>this
+            else this>other
+    else find the 1st different number and find it's difference
+    */
+    
+    private int whichIsBig(AInteger other) {
+        if(this.digits.size() != other.digits.size()) {
+            return this.digits.size() - other.digits.size();
+        }
+        
+        //As, we have stored the numbers in rebverse
+        for (int i = this.digits.size()-1; i>=0; i--) {
+            if (this.digits.get(i) != other.digits.get(i)) {
+                return this.digits.get(i) - other.digits.get(i);
+            }
+        }
+        //If this == other
+        return 0;
+    }
+    
+    //Subtraction opreation
+    public AInteger sub(AInteger other) {
+        
+        //If sign of this != other, assign to add.
+        if (this.isNeg != other.isNeg) {
+            //Create new AInteger same as other but opposite sign
+            AInteger newOther = new AInteger(other);
+            newOther.isNeg = !newOther.isNeg;
+            return this.add(newOther);
+            
+        //Find which among this, other is Big
+        int whichIsBigger = this.whichIsBig(other);
+        //Result stores this-other
+        AInteger result = new AInteger();
+        result.digits.clear();
+        //To store the bigger and smaller digits of the two
+        AInteger bigNum, smallNum;
+        
+        //this == other
+        if (whichIsBigger == 0) {
+            result.digits.add(0);
+            return result;
+        }
+        //this>ohter
+        else if (whichIsBigger > 0) {
+            bigNum = this;
+            smallNum = other;
+            result.isNeg = this.isNeg;
+        }
+        //other>this
+        else {
+            bigNum = other;
+            smallNum = this;
+            result.isNeg = other.isNeg;
+        }
+        
+        int borrow = 0;
+        for (int i=0; i<bigNum.digits.size(); i++) {
+            
+            int diff = bigNum.digits.get(i) - borrow;
+            if (i<smallNum.digits.size()) diff = diff-smallNum..digits.get(i);
+            
+            if (diff<0) {
+                diff = diff+10;
+                borrow=1;
+            } else borrow=0;
+            
+            result.digits.add(diff);
+        }
+        return result;
+    }
 }
