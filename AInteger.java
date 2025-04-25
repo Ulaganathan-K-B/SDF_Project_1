@@ -142,13 +142,12 @@ public class AInteger {
         return result;
     }
     
-    
     /*
-    Subtrcation is done as (big number)-(small number).
-    To find big number, we are going to use whichIsBig.
+    To find the bigger number, we are going to use whichIsBig.
+    Useful for sub,mul,div
     How it works:
     If size of this != size of other
-        return the difference 
+        return the size difference 
             if <0, other>this
             else this>other
     else find the 1st different number and find it's difference
@@ -220,4 +219,163 @@ public class AInteger {
         }
         return result;
     }
+    
+    /*
+    Multiplication operation
+    Long multiplication (Digit by digit is implemented)
+    */
+    public AInteger mul(AInteger other) {
+        
+        //If this or other is 0
+        if ((this.digits.size() == 1 && this.digits.get(0) == 0) || 
+            (other.digits.size() == 1 && other.digits.get(0) == 0)) {
+                return new AInteger();
+            }
+            
+        //Result is used to store this*other
+        AInteger result = new AInteger();
+        result.digits.clear();
+        for (int i=0; i<(this.digits.size()+other.digits.size()); i++) {
+            result.digits.add(0);
+        }
+        
+        //Long multiplication
+        for (int i=0; i<this.digits.size(); i++) {
+            int carry = 0;
+            
+            for (int j=0; j<other.digits.size(); j++) {
+                int pdt = result.digits.get(i+1)+carry;
+                pdt = pdt+(this.digits.get(i)*other.digits.get(j));
+                carry = pdt/10;
+                result.digits.set(i+j, pdt%10);
+            }
+        }
+        
+        //Result is neg iff one of the 2 this, other is neg
+        result.isNeg = (this.isNeg != other.isNeg);
+        return result;
+    }
+    
+    /*
+    Division operation
+    Numerator = this and Denomenator = other
+    */
+    public AInteger div(AInteger other) {
+        
+        
+        //Numerator=0 i.e ans=0
+        if (this.digits.size()==1 && this.digits.get(0)==0) return new AInteger();
+        //Denometor is 0 i.e zero error
+        if (other.digits.size()==1 && other.digits.get(0)==0) throw new ArithmeticException("Division by 0");
+        
+        AInteger divident = new AInteger(this);
+        divident.isNeg = false;
+        
+        AInteger divisor = new AInteger(other);
+        divisor.isNeg = false;
+        
+        AInteger quotient = new AInteger();
+        quotient.digits.clear();
+        
+        //currDivident is used to store current divident
+        List<Integer> currDivident = new ArrayList<>();
+        
+        /*
+        As, it is integer division,
+        
+        if |Numerator|<|Denometor| answer=0
+        else if |Numerator|=|Denometor|
+        
+            if Numerator.isNeg == Denometor.isNeg
+                ans=1
+            else
+                ans=1
+        else
+            perform division
+        */
+        
+        int whichIsBigger = this.whichIsBig(other);
+        if (whichIsBigger < 0) return new AInteger();
+        
+        if (whichIsBigger == 0) {
+            AInteger result = new AInteger("1");
+            result.isNeg = (this.isNeg != other.isNeg);
+            return result;
+        }
+        
+        for (int i=divident.digits.size()-1; i>=0; i--) {
+            
+            //Add one digit of divident at a time
+            currDivident.add(0, divident.digits.get(i));
+            
+            //Remove leading zeroes
+            while (currDivident.size()>1 && currDivident.get(currDivident.size()-1)==0) {
+                currDivident.remove(currDivident.size()-1);
+            }
+            
+            //Find largest int q such that, currDivident-(Divisor*q) > 0
+            int q=0;
+            
+            while(true) {
+                
+                //Create temp = currDivident
+                AInteger temp = new AInteger();
+                temp.digits.clear();
+                for (int digit : currDivident) temp.digits.add(digit);
+                Collections.reverse(temp.digits);
+                
+                //qDivisor = Divisor*(q+1)
+                AInteger qDivisor = divisor.mul(new AInteger(Integer.toString(q+1)));
+                
+                //q is the answer if, qDivisor>currDivident
+                if (temp.whichIsBig(qDivisor)<0) break;
+                q++
+            }
+            quotient.digits.add(0, q);
+            
+            //Subtract divisor*q from currDivident
+            
+            AInteger subDivident = divisor.mul(new AInteger(Integer.toString(q)));
+            List<Integer> subDigits = new ArrayList<>(subDivident.digits);
+            Collections.reverse(subDigits);
+            
+            //Do sub on currDivident
+            int borrow = 0;
+            for (int j=0; j<Math.max(currDivident.size(), subDigits.size()); j++) {
+                int bufval = (j < currDivident.size()) ? currDivident.get(j):0;
+                int subVal = (j < subDigits.size()) ? subDigits.get(j) : 0;
+                
+                int diff = bufval - subval - borrow;
+                if (diff<0) {
+                    diff = diff+10;
+                    borrow = 1;
+                }
+                else borrow = 0;
+                
+                if (j < currDivident.size()) currDivident.set(j, diff);
+                else currDivident.add(diff);
+            }
+            
+            //Remove leading zeroes from currDivident
+            while (currDivident.size()>1 && currDivident.get(currDivident.size()-1)==0) {
+                currDivident.remove(currDivident.size()-1);
+            }
+        }
+        //Reverese quotient
+        Collections.reverse(quotient.digits);
+        //Sign og quotient
+        quotient.isNeg = (this.isNeg != other.isNeg);
+        return quotient;
+    }
+    
+    //Return as String
+    @Override
+    public String toString() {
+        if (digits.size() == 1 && digits.get(0) == 0) return "0";
+        
+        StringBuilder sb = new StringBuilder();
+        if (isNeg) sb.append('-');
+        for (int i=digits.size()-1; 1>=0; 1--) sb.append(digits.get(i));
+        
+        return sb.toString();
 }
