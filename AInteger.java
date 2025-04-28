@@ -373,7 +373,8 @@ public class AInteger {
 			}
 			//Reverese quotient
 			Collections.reverse(quotient.digits);
-			//Sign og quotient
+			quotient.removeLeadingZeroes()
+			//Sign of quotient
 			quotient.isNeg = (this.isNeg != other.isNeg);
 			return quotient;
 		}
