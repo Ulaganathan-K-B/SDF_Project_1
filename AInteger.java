@@ -209,7 +209,7 @@ public class AInteger {
 			else {
 				bigNum = other;
 				smallNum = this;
-				result.isNeg = other.isNeg;
+				result.isNeg = !other.isNeg;
 			}
 
 			int borrow = 0;
@@ -271,113 +271,81 @@ public class AInteger {
 		Numerator = this and Denomenator = other
 		*/
 		public AInteger div(AInteger other) {
-
-
-			//Numerator=0 i.e ans=0
-			if (this.digits.size()==1 && this.digits.get(0)==0) return new AInteger();
-			//Denometor is 0 i.e zero error
-			if (other.digits.size()==1 && other.digits.get(0)==0) throw new ArithmeticException("Division by 0");
-
-			AInteger divident = new AInteger(this);
-			divident.isNeg = false;
-
-			AInteger divisor = new AInteger(other);
-			divisor.isNeg = false;
-
-			AInteger quotient = new AInteger();
-			quotient.digits.clear();
-
-			//currDivident is used to store current divident
-			List<Integer> currDivident = new ArrayList<>();
-
-			/*
-			As, it is integer division,
-
-			if |Numerator|<|Denometor| answer=0
-			else if |Numerator|=|Denometor|
-
-			    if Numerator.isNeg == Denometor.isNeg
-			        ans=1
-			    else
-			        ans=1
-			else
-			    perform division
-			*/
-
-			int whichIsBigger = this.whichIsBig(other);
-			if (whichIsBigger < 0) return new AInteger();
-
-			if (whichIsBigger == 0) {
-				AInteger result = new AInteger("1");
-				result.isNeg = (this.isNeg != other.isNeg);
-				return result;
-			}
-
-			for (int i=divident.digits.size()-1; i>=0; i--) {
-
-				//Add one digit of divident at a time
-				currDivident.add(0, divident.digits.get(i));
-
-				//Remove leading zeroes
-				while (currDivident.size()>1 && currDivident.get(currDivident.size()-1)==0) {
-					currDivident.remove(currDivident.size()-1);
-				}
-
-				//Find largest int q such that, currDivident-(Divisor*q) > 0
-				int q=0;
-
-				while(true) {
-
-					//Create temp = currDivident
-					AInteger temp = new AInteger();
-					temp.digits.clear();
-					for (int digit : currDivident) temp.digits.add(digit);
-					Collections.reverse(temp.digits);
-
-					//qDivisor = Divisor*(q+1)
-					AInteger qDivisor = divisor.mul(new AInteger(Integer.toString(q+1)));
-
-					//q is the answer if, qDivisor>currDivident
-					if (temp.whichIsBig(qDivisor)<0) break;
-					q++;
-				}
-				quotient.digits.add(0, q);
-
-				//Subtract divisor*q from currDivident
-
-				AInteger subDivident = divisor.mul(new AInteger(Integer.toString(q)));
-				List<Integer> subDigits = new ArrayList<>(subDivident.digits);
-				Collections.reverse(subDigits);
-
-				//Do sub on currDivident
-				int borrow = 0;
-				for (int j=0; j<Math.max(currDivident.size(), subDigits.size()); j++) {
-					int bufval = (j < currDivident.size()) ? currDivident.get(j):0;
-					int subVal = (j < subDigits.size()) ? subDigits.get(j) : 0;
-
-					int diff = bufval - subVal - borrow;
-					if (diff<0) {
-						diff = diff+10;
-						borrow = 1;
-					}
-					else borrow = 0;
-
-					if (j < currDivident.size()) currDivident.set(j, diff);
-					else currDivident.add(diff);
-				}
-
-				//Remove leading zeroes from currDivident
-				while (currDivident.size()>1 && currDivident.get(currDivident.size()-1)==0) {
-					currDivident.remove(currDivident.size()-1);
-				}
-			}
-			//Reverese quotient
-			Collections.reverse(quotient.digits);
-			quotient.removeLeadingZeroes()
-			//Sign of quotient
-			quotient.isNeg = (this.isNeg != other.isNeg);
-			return quotient;
-		}
+            // Division by zero check
+            if (other.toString().equals("0")) {
+                throw new ArithmeticException("Division by zero");
+            }
+    
+            // Handle sign and special cases
+            boolean resultIsNegative = (this.isNeg != other.isNeg);
+            AInteger dividend = new AInteger(this);
+            AInteger divisor = new AInteger(other);
+            dividend.isNeg = false;
+            divisor.isNeg = false;
+    
+            // Compare absolute values
+            int comparison = dividend.whichIsBig(divisor);
+            if (comparison < 0) {
+                // If |dividend| < |divisor|, result is 0
+                return new AInteger("0");
+            }
+            if (comparison == 0) {
+                // If |dividend| = |divisor|, result is 1 with proper sign
+                AInteger result = new AInteger("1");
+                result.isNeg = resultIsNegative;
+                return result;
+            }
+    
+            // Convert to strings for easier digit-by-digit processing
+            String dividendStr = dividend.toString();
+    
+            // Current working value in the division process
+            AInteger current = new AInteger("0");
+            StringBuilder quotientBuilder = new StringBuilder();
+            boolean quotientStarted = false;
+    
+            // Process each digit of the dividend
+            for (int i = 0; i < dividendStr.length(); i++) {
+                // Bring down the next digit
+                current = current.mul(new AInteger("10"));
+                current = current.add(new AInteger(Character.toString(dividendStr.charAt(i))));
+        
+                // Check if current is still less than divisor
+                    if (current.whichIsBig(divisor) < 0) {
+                        if (quotientStarted) {
+                            quotientBuilder.append("0");
+                        }
+                        continue;
+                    }
+        
+                // Find the largest digit q such that q * divisor <= current
+                int q = 0;
+                for (int j = 1; j <= 9; j++) {
+                    AInteger product = divisor.mul(new AInteger(Integer.toString(j)));
+                    if (current.whichIsBig(product) >= 0) {
+                        q = j;
+                    } 
+                    else break;
+                }
+            
+                // Add q to the quotient
+                quotientBuilder.append(q);
+                quotientStarted = true;
+        
+                // Subtract q * divisor from current
+                AInteger subtraction = divisor.mul(new AInteger(Integer.toString(q)));
+                current = current.sub(subtraction);
+            }
+    
+            // If quotient is empty, the result is 0
+            if (quotientBuilder.length() == 0) return new AInteger("0");
+    
+            // Create final quotient with proper sign
+            AInteger quotient = new AInteger(quotientBuilder.toString());
+            quotient.isNeg = resultIsNegative;
+    
+            return quotient;
+        }
 
 		//Return as String
 		@Override
