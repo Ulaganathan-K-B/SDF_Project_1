@@ -5,15 +5,14 @@ AFloat: Arithmetic operation on infinitely long Decimals
 Similar as BigDecimal
 We use the already created AInteger
 */
-
 public class AFloat {
-    private AInteger intPart;
-    private AInteger fracPart;
-    private int fracDigits;
+    private AInteger intPart;  //Stores integer part
+    private AInteger fracPart; //Stores fractional part
+    private int fracDigits;    //#Digits in fractional Part
     private boolean isNeg;
     private static final int chosenPrecision = 1000;
 
-    // Default constructor. Initialising to +0.
+    // Default constructor. Initialising to +0.0
     public AFloat() {
         intPart = new AInteger();
         fracPart = new AInteger();
@@ -32,38 +31,52 @@ public class AFloat {
         }
 
         int startingIndex = 0;
+        
         if (s.charAt(0) == '-') {
             isNeg = true;
             startingIndex = 1;
-        } else if (s.charAt(0) == '+') {
+        }
+        
+        else if (s.charAt(0) == '+') {
             isNeg = false;
             startingIndex = 1;
-        } else isNeg = false;
-
+        } 
+        else isNeg = false;
+        
+        //Index of the decimal point.
         int deciPtIdx = s.indexOf('.', startingIndex);
+        
+        /*
+        No decimal point
+        Thus, entire input is stored in intPart
+        fracPart = 0
+        */
         if (deciPtIdx == -1) {
             intPart = new AInteger(isNeg ? '-' + s.substring(startingIndex) : s.substring(startingIndex));
             fracPart = new AInteger();
             fracDigits = 0;
-        } else {
-            // Check for multiple decimal points
-            if (s.indexOf('.', deciPtIdx + 1) != -1) {
-                throw new NumberFormatException("Multiple decimal points");
-            }
+        } 
+        
+        else {
+            //Check if >1 decimal points
+            if (s.indexOf('.', deciPtIdx + 1) != -1) throw new NumberFormatException("Multiple decimal points");
             
+            //integerPart stores all that comes before decimal point
             String integerPart = s.substring(startingIndex, deciPtIdx);
             if (integerPart.isEmpty()) integerPart = "0";
+            //Assign sign to onteger part
             intPart = new AInteger(isNeg ? '-' + integerPart : integerPart);
+            
+            //fractionalPart stores all that comes after decimal point
             String fractionalPart = s.substring(deciPtIdx + 1);
             fracDigits = fractionalPart.length();
             if (fractionalPart.isEmpty()) {
                 fracPart = new AInteger();
                 fracDigits = 0;
-            } else {
-                fracPart = new AInteger(fractionalPart);
-            }
+            } 
+            else fracPart = new AInteger(fractionalPart);
         }
-        normalise();
+        normalise(); 
     }
 
     // Copy Constructor
@@ -73,73 +86,103 @@ public class AFloat {
         this.fracDigits = other.fracDigits;
         this.isNeg = other.isNeg;
     }
+    
+    //Parse
+    public static AFloat parse(String s) {
+        return new AFloat(s);
+    }
 
-    // Normalise the fractional part i.e remove trailing 0
+
+    //Remove trailing 0 of fractional part 
     private void normalise() {
+        
+        //fracPart is converted to string
         String fracStr = fracPart.toString();
+        //Assume no trailing zeroes
         int trailingZeroes = 0;
+        
+        //Find number of trailling zeroes.
         if (fracDigits > 0) {
             for (int i = fracStr.length() - 1; i >= 0; i--) {
                 if (fracStr.charAt(i) == '0') trailingZeroes++;
                 else break;
             }
         }
+        
         if (trailingZeroes > 0) {
+            //If #trailingZeroes == Length of fracPart fracPart=0
             if (trailingZeroes == fracStr.length()) {
                 fracPart = new AInteger();
                 fracDigits = 0;
-            } else {
+            } 
+            //Remove trailing zeroes
+            else {
                 fracPart = new AInteger(fracStr.substring(0, fracStr.length() - trailingZeroes));
                 fracDigits = fracDigits - trailingZeroes;
             }
         }
     }
 
-    // For aligning the decimal points properly.
+    //For aligning the decimal points properly.
     private static void alignDeciPt(AFloat a, AFloat b) {
+        
+        //Difference between the index of decimal point of a,b
         int diff = a.fracDigits - b.fracDigits;
+        
         if (diff > 0) {
             String pad = b.fracPart.toString() + "0".repeat(diff);
             b.fracPart = new AInteger(pad);
             b.fracDigits = a.fracDigits;
-        } else if (diff < 0) {
+        } 
+        else if (diff < 0) {
             String pad = a.fracPart.toString() + "0".repeat(-diff);
             a.fracPart = new AInteger(pad);
             a.fracDigits = b.fracDigits;
         }
     }
 
-    // Convert frac and int part into a single AInteger by *10^n
+    //Convert frac and int part into a single AInteger by mul with 10^n
     private AInteger scaledInt() {
-        String intStr = intPart.toString();
-        if (intStr.equals("0") && isNeg) intStr = "-0";
-        if (fracDigits == 0) return new AInteger(intStr);
-        String fracStr = fracPart.toString();
+        
+        String intStr = intPart.toString();               //Int part is converted to String
+        if (intStr.equals("0") && isNeg) intStr = "-0";   //If I/P is -0.88
+        if (fracDigits == 0) return new AInteger(intStr); //If I/P is 9(No frac part)
+        
+        String fracStr = fracPart.toString(); //Frac part converted to string
         while (fracStr.length() < fracDigits) fracStr = "0" + fracStr;
+        
         String combined = intStr + fracStr;
         return new AInteger(combined);
     }
 
     // Set value from scaled integer and scale
     private void fromScaledInt(AInteger n, int scale) {
+        
         String numStr = n.toString();
         boolean isNegative = false;
+        
+        //Removes '-' from index 1
         if (numStr.charAt(0) == '-') {
             isNegative = true;
             numStr = numStr.substring(1);
         }
-
+        
         int splitPoint = numStr.length() - scale;
+        
         if (splitPoint <= 0) {
             intPart = new AInteger("0");
             String fracStr = "0".repeat(-splitPoint) + numStr;
             fracPart = new AInteger(fracStr);
             fracDigits = scale;
-        } else if (splitPoint >= numStr.length()) {
+        } 
+        
+        else if (splitPoint >= numStr.length()) {
             intPart = new AInteger(isNegative ? "-" + numStr : numStr);
             fracPart = new AInteger("0");
             fracDigits = 0;
-        } else {
+        } 
+        
+        else {
             String intStr = numStr.substring(0, splitPoint);
             if (intStr.isEmpty()) intStr = "0";
             intPart = new AInteger(isNegative ? "-" + intStr : intStr);
@@ -151,7 +194,7 @@ public class AFloat {
         normalise();
     }
 
-    // Addition
+    //Addition
     public AFloat add(AFloat other) {
         AFloat a = new AFloat(this);
         AFloat b = new AFloat(other);
@@ -164,7 +207,7 @@ public class AFloat {
         return result;
     }
 
-    // Subtraction
+    //Subtraction
     public AFloat sub(AFloat other) {
         AFloat a = new AFloat(this);
         AFloat b = new AFloat(other);
@@ -188,23 +231,18 @@ public class AFloat {
         return result;
     }
 
-    // Division - Fixed version
+    //Division
     public AFloat div(AFloat other) {
-        // Check for division by zero
-        if (other.intPart.toString().equals("0") && other.fracPart.toString().equals("0")) {
-            throw new ArithmeticException("Division by zero");
-        }
+        //Check div by 0
+        if (other.intPart.toString().equals("0") && other.fracPart.toString().equals("0")) throw new ArithmeticException("Division by zero");
 
-        // Get integer representations of the operands
-        AInteger a = this.scaledInt();
+                AInteger a = this.scaledInt();
         AInteger b = other.scaledInt();
         
-        // Calculate the effective scale: 
-        // When we divide, the number of decimal places should be:
-        // dividend decimal places - divisor decimal places + chosen precision
+        // #decimal places = dividend decimal places - divisor decimal places + chosen precision
         int effectiveScale = this.fracDigits - other.fracDigits + chosenPrecision;
         
-        // Scale the dividend appropriately
+        //Scale the dividend
         String aStr = a.toString();
         boolean isNegative = false;
         if (aStr.charAt(0) == '-') {
@@ -212,14 +250,14 @@ public class AFloat {
             aStr = aStr.substring(1);
         }
         
-        // Add zeros for precision
+        //Add zeros for precision
         aStr = aStr + "0".repeat(chosenPrecision);
         if (isNegative) aStr = "-" + aStr;
         
-        // Create scaled dividend
+        //Scaled dividend
         AInteger scaledDividend = new AInteger(aStr);
         
-        // Perform division
+        //Perform division
         AInteger quotient = scaledDividend.div(b);
         
         // Create result with proper scale
