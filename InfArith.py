@@ -4,28 +4,8 @@ import os
 import sys
 import subprocess
 
-
 def compile_java():
     """Compile Java source files and create JAR archive"""
-    # Create directory structure
-    os.makedirs("arbitraryarithmetic", exist_ok=True)
-    '''
-    # Write Java source files
-    with open("arbitraryarithmetic/AInteger.java", "w") as f:
-        f.write("""
-# [AInteger.java code from above]
-        """)
-
-    with open("arbitraryarithmetic/AFloat.java", "w") as f:
-        f.write("""
-# [AFloat.java code from above]
-        """)
-
-    with open("MyInfArith.java", "w") as f:
-        f.write("""
-# [MyInfArith.java code from above]
-        """)
-   '''
     # Create Makefile
     with open("Makefile", "w") as f:
         f.write("""
