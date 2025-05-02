@@ -41,16 +41,19 @@ public class AFloat {
         } else isNeg = false;
 
         int deciPtIdx = s.indexOf('.', startingIndex);
-
         if (deciPtIdx == -1) {
             intPart = new AInteger(isNeg ? '-' + s.substring(startingIndex) : s.substring(startingIndex));
             fracPart = new AInteger();
             fracDigits = 0;
         } else {
+            // Check for multiple decimal points
+            if (s.indexOf('.', deciPtIdx + 1) != -1) {
+                throw new NumberFormatException("Multiple decimal points");
+            }
+            
             String integerPart = s.substring(startingIndex, deciPtIdx);
             if (integerPart.isEmpty()) integerPart = "0";
             intPart = new AInteger(isNeg ? '-' + integerPart : integerPart);
-
             String fractionalPart = s.substring(deciPtIdx + 1);
             fracDigits = fractionalPart.length();
             if (fractionalPart.isEmpty()) {
@@ -80,14 +83,14 @@ public class AFloat {
                 if (fracStr.charAt(i) == '0') trailingZeroes++;
                 else break;
             }
-            if (trailingZeroes > 0) {
-                if (trailingZeroes == fracStr.length()) {
-                    fracPart = new AInteger();
-                    fracDigits = 0;
-                } else {
-                    fracPart = new AInteger(fracStr.substring(0, fracStr.length() - trailingZeroes));
-                    fracDigits = fracDigits - trailingZeroes;
-                }
+        }
+        if (trailingZeroes > 0) {
+            if (trailingZeroes == fracStr.length()) {
+                fracPart = new AInteger();
+                fracDigits = 0;
+            } else {
+                fracPart = new AInteger(fracStr.substring(0, fracStr.length() - trailingZeroes));
+                fracDigits = fracDigits - trailingZeroes;
             }
         }
     }
@@ -125,6 +128,7 @@ public class AFloat {
             isNegative = true;
             numStr = numStr.substring(1);
         }
+
         int splitPoint = numStr.length() - scale;
         if (splitPoint <= 0) {
             intPart = new AInteger("0");
@@ -142,6 +146,7 @@ public class AFloat {
             fracPart = new AInteger(numStr.substring(splitPoint));
             fracDigits = scale;
         }
+
         this.isNeg = isNegative;
         normalise();
     }
@@ -183,48 +188,44 @@ public class AFloat {
         return result;
     }
 
-    // Division
+    // Division - Fixed version
     public AFloat div(AFloat other) {
         // Check for division by zero
         if (other.intPart.toString().equals("0") && other.fracPart.toString().equals("0")) {
             throw new ArithmeticException("Division by zero");
         }
-    
+
         // Get integer representations of the operands
         AInteger a = this.scaledInt();
         AInteger b = other.scaledInt();
-    
-        // Calculate result scale: 
-        // We need to account for both operands' scales for correct precision
-        int resultScale = chosenPrecision;
-    
-        // Scale the dividend appropriately:
-        // We need to multiply the dividend by 10^(resultScale + divisor.fracDigits)
-        // to ensure the correct scale in the result
+        
+        // Calculate the effective scale: 
+        // When we divide, the number of decimal places should be:
+        // dividend decimal places - divisor decimal places + chosen precision
+        int effectiveScale = this.fracDigits - other.fracDigits + chosenPrecision;
+        
+        // Scale the dividend appropriately
         String aStr = a.toString();
         boolean isNegative = false;
-    
         if (aStr.charAt(0) == '-') {
             isNegative = true;
             aStr = aStr.substring(1);
         }
-    
-        // Add zeros based on desired precision plus divisor scale
-        aStr = aStr + "0".repeat(resultScale + other.fracDigits);
-    
-        // Restore sign
+        
+        // Add zeros for precision
+        aStr = aStr + "0".repeat(chosenPrecision);
         if (isNegative) aStr = "-" + aStr;
-    
+        
         // Create scaled dividend
         AInteger scaledDividend = new AInteger(aStr);
-    
+        
         // Perform division
         AInteger quotient = scaledDividend.div(b);
-    
+        
         // Create result with proper scale
         AFloat divResult = new AFloat();
-        divResult.fromScaledInt(quotient, resultScale);
-    
+        divResult.fromScaledInt(quotient, effectiveScale);
+        
         return divResult;
     }
 
