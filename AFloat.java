@@ -10,7 +10,7 @@ public class AFloat {
     private AInteger fracPart; //Stores fractional part
     private int fracDigits;    //#Digits in fractional Part
     private boolean isNeg;
-    private static final int chosenPrecision = 1000;
+    private static final int chosenPrecision = 30;
 
     // Default constructor. Initialising to +0.0
     public AFloat() {
